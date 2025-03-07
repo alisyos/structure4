@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// 환경 변수에서 API 키를 가져옵니다
+// API 키 설정 (환경 변수만 사용)
+const apiKey = process.env.OPENAI_API_KEY;
+
+// OpenAI 클라이언트 초기화
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: apiKey,
 });
 
 export async function POST(request: Request) {
   try {
+    // API 키가 설정되어 있지 않은 경우 오류 반환
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'OpenAI API 키가 설정되어 있지 않습니다. 환경 변수를 확인해주세요.' },
+        { status: 500 }
+      );
+    }
+
     const { sentence } = await request.json();
 
     if (!sentence || typeof sentence !== 'string') {
@@ -61,7 +72,7 @@ export async function POST(request: Request) {
 
     try {
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o', // gpt-4o-mini 대신 gpt-4o 사용
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
