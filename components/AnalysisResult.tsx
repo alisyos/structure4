@@ -116,11 +116,13 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
         if (!processedIndices.has(component.startIndex)) {
           const { type, text, startIndex, endIndex } = component;
           
-          // 주어, 동사, 목적어, 전치사구 확인
+          // 주어, 동사, 목적어, 전치사구, 주격보어, 목적격보어 확인
           const isSubject = type.toLowerCase().includes('주어');
           const isVerb = type.toLowerCase().includes('동사');
-          const isObject = type.toLowerCase().includes('목적어');
+          const isObject = type.toLowerCase().includes('목적어') && !type.toLowerCase().includes('목적격 보어');
           const isPrepPhrase = type.toLowerCase().includes('전치사구');
+          const isSubjectComplement = type.toLowerCase().includes('주격 보어');
+          const isObjectComplement = type.toLowerCase().includes('목적격 보어');
           
           const span = document.createElement('span');
           span.className = 'relative inline-block mx-1 group';
@@ -157,6 +159,26 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
             
             span.appendChild(innerSpan);
             span.appendChild(label);
+          } else if (isSubjectComplement) {
+            innerSpan.className = 'text-purple-600 border-b-2 border-purple-600';
+            innerSpan.textContent = text;
+            
+            const label = document.createElement('span');
+            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-purple-600 font-bold';
+            label.textContent = 'SC';
+            
+            span.appendChild(innerSpan);
+            span.appendChild(label);
+          } else if (isObjectComplement) {
+            innerSpan.className = 'text-purple-400 border-b-2 border-purple-400';
+            innerSpan.textContent = text;
+            
+            const label = document.createElement('span');
+            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-purple-400 font-bold';
+            label.textContent = 'OC';
+            
+            span.appendChild(innerSpan);
+            span.appendChild(label);
           } else if (isPrepPhrase) {
             innerSpan.className = 'text-black';
             
@@ -172,6 +194,9 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
             innerSpan.appendChild(document.createTextNode(text));
             innerSpan.appendChild(closeBracket);
             
+            span.appendChild(innerSpan);
+          } else {
+            innerSpan.textContent = text;
             span.appendChild(innerSpan);
           }
           
@@ -233,6 +258,14 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-green-600 mr-2"></span>
             <span>목적어 (O)</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-purple-600 mr-2"></span>
+            <span>주격보어 (SC)</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-purple-400 mr-2"></span>
+            <span>목적격보어 (OC)</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-orange-400 mr-2"></span>
