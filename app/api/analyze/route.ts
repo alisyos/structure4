@@ -29,52 +29,89 @@ export async function POST(request: Request) {
     }
 
     const prompt = `
-다음 영어 문장의 문장 성분을 분석해주세요:
+영어 문장의 성분을 분석해주세요. 다음 성분들을 식별하고 JSON 형식으로 반환해주세요:
+- 주어 (Subject): 문장에서 행동이나 상태의 주체
+- 동사 (Verb): 문장에서 행동이나 상태를 나타내는 모든 동사를 포함합니다.
+  * be동사 (is, am, are, was, were 등)
+  * 일반동사
+  * 조동사 (can, will, should 등)
+  * 동사구의 모든 부분 (예: "have been working"의 경우 전체를 동사로 표시)
+- 목적어 (Object): 동사의 행동을 받는 대상
+- 전치사구 (Prepositional Phrase): 전치사와 그 목적어로 구성된 구
+- 주격 보어 (Subject Complement): 주어를 설명하거나 보충하는 명사, 형용사, 또는 구
+- 목적격 보어 (Object Complement): 목적어를 설명하거나 보충하는 명사, 형용사, 또는 구
+- 동격 (Apposition): 앞에 나온 명사나 명사구를 다른 명사나 명사구로 부연 설명하는 것
+- 과거분사 (Past Participle): 동사의 과거분사형이 형용사처럼 사용되는 경우
 
-"${sentence}"
+중요: 
+1. 한 요소가 여러 문법적 역할을 동시에 수행할 수 있습니다. 예를 들어, 'is'는 동사이면서 주격 보어의 일부일 수 있습니다.
+2. 모든 동사는 반드시 "동사" 타입으로 표시되어야 합니다.
+3. be동사(is, am, are 등)도 반드시 동사로 표시해야 합니다.
+4. 과거분사가 형용사처럼 사용될 때는 "과거분사" 타입으로 표시합니다.
+5. 문장의 모든 주요 성분을 빠짐없이 식별해주세요.
+6. 복잡한 구나 절도 적절한 성분으로 분류해주세요.
+7. 같은 단어나 구가 여러 역할을 할 경우, 각 역할에 대해 별도의 컴포넌트로 반환해주세요.
+8. 특히 'is', 'are', 'was', 'were'와 같은 be동사는 항상 독립적인 "동사" 컴포넌트로 반환하고, 동시에 주격 보어의 일부로도 포함시켜 주세요.
+9. 주어진 문장에서 모든 동사를 찾아 반드시 "동사" 타입으로 표시해주세요. 특히 "is", "are", "was", "were", "am", "be", "been", "being"과 같은 be동사도 반드시 동사로 표시해야 합니다.
+10. 'is'와 같은 be동사는 반드시 별도의 "동사" 컴포넌트로 표시해야 합니다. 예를 들어, "today's episode is especially for my teenage subscribers"에서 "is"는 반드시 별도의 동사 컴포넌트로 표시해야 합니다.
+11. 문장에서 "is"가 있다면, 반드시 다음과 같이 별도의 동사 컴포넌트로 표시해야 합니다:
+    {
+      "type": "동사",
+      "text": "is"
+    }
 
-다음 문장 성분들을 찾아서 JSON 형식으로 반환해주세요:
-- 주어 / 진주어 / 가주어 / 의미상 주어
-- 동사
-- 목적어 / 간접 목적어 / 직접 목적어 / 진목적어 / 가목적어
-- 주격 보어 (주어를 설명하거나 보충하는 보어)
-- 목적격 보어 (목적어를 설명하거나 보충하는 보어)
-- to부정사 (주어, 진주어, 목적어, 진목적어, 주격보어, 목적어, 형용사, 부사)
-- 동명사 (주어, 목적어, 보어, 전치사 목적어)
-- 분사 (과거분사/현재분사)
-- 분사구문
-- 전치사구
-- 부사구
-- 형용사구
-- 등위어
-- 등위절
-- 동격
-- 명사절 (주어, 진주어, 목적어, 직접 목적어, 진목적어, 주격 보어, 목적격 보어)
-- 부사절
-- 관계절 (주격 관대, 목적격 관대, 소유격 관대, 관계부사)
-- 삽입절
+예시:
+문장: "He is happy."
+분석:
+- "He": 주어
+- "is": 동사
+- "happy": 주격보어
 
-중요: 보어는 반드시 '주격 보어'와 '목적격 보어'로 명확하게 구분해서 표시해주세요. 
-- 주격 보어: 주어를 설명하거나 보충하는 보어 (예: He is happy. - 'happy'는 주격 보어)
-- 목적격 보어: 목적어를 설명하거나 보충하는 보어 (예: They made him happy. - 'happy'는 목적격 보어)
+문장: "I started eight years ago as a high school student, and that's why today's episode is especially for my teenage subscribers."
+분석:
+- "I": 주어
+- "started": 동사
+- "eight years ago": 목적어
+- "as a high school student": 전치사구
+- "that": 주어
+- "is": 동사 (that's의 일부)
+- "why today's episode is especially for my teenage subscribers": 주격 보어
+- "today's episode": 주어
+- "is": 동사
+- "especially for my teenage subscribers": 주격 보어
+- "for my teenage subscribers": 전치사구
 
-단순히 '보어'로만 표시하지 말고, 반드시 '주격 보어' 또는 '목적격 보어'로 구체적으로 분류해주세요.
+문장: "why today's episode is especially for my teenage subscribers"
+분석:
+- "why": 접속사
+- "today's episode": 주어
+- "is": 동사
+- "especially for my teenage subscribers": 주격 보어
+- "for my teenage subscribers": 전치사구
 
-각 문장 성분에 대해 해당하는 단어나 구를 표시하고, 그 역할을 설명해주세요.
-결과는 다음과 같은 JSON 형식으로 반환해주세요:
-
+다음 형식으로 JSON을 반환해주세요:
 {
-  "sentence": "원본 문장",
   "components": [
     {
-      "type": "문장 성분 유형",
-      "text": "해당 단어 또는 구",
-      "role": "문장에서의 역할 설명"
+      "type": "주어",
+      "text": "He"
+    },
+    {
+      "type": "동사",
+      "text": "is"
+    },
+    {
+      "type": "주격 보어",
+      "text": "happy"
+    },
+    {
+      "type": "주격 보어",
+      "text": "is happy"
     }
   ]
 }
 
-없는 성분은 생략해도 됩니다.
+분석할 문장: "${sentence}"
 `;
 
     try {
@@ -104,14 +141,45 @@ export async function POST(request: Request) {
       
       if (jsonMatch) {
         try {
-          analysisResult = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          const jsonContent = jsonMatch[1] || jsonMatch[0];
+          // 유효한 JSON인지 확인
+          const parsedJson = JSON.parse(jsonContent);
+          
+          // components 배열이 있는지 확인하고 각 항목이 필요한 속성을 가지고 있는지 검증
+          if (parsedJson && parsedJson.components && Array.isArray(parsedJson.components)) {
+            // 각 컴포넌트가 유효한지 확인
+            parsedJson.components = parsedJson.components.filter((comp: any) => 
+              comp && typeof comp === 'object' && comp.type && comp.text
+            );
+            
+            analysisResult = {
+              sentence,
+              components: parsedJson.components
+            };
+          } else {
+            // 유효한 components 배열이 없는 경우
+            analysisResult = { 
+              sentence, 
+              rawResponse: content,
+              components: [] 
+            };
+          }
         } catch (e) {
+          console.error('JSON 파싱 오류:', e);
           // JSON 파싱 실패 시 원본 텍스트 반환
-          analysisResult = { sentence, rawResponse: content };
+          analysisResult = { 
+            sentence, 
+            rawResponse: content,
+            components: [] 
+          };
         }
       } else {
         // JSON 형식이 아닌 경우 원본 텍스트 반환
-        analysisResult = { sentence, rawResponse: content };
+        analysisResult = { 
+          sentence, 
+          rawResponse: content,
+          components: [] 
+        };
       }
 
       return NextResponse.json(analysisResult);

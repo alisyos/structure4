@@ -73,17 +73,52 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
       const componentText = component.text;
       const componentType = component.type;
       
-      // 정확한 매칭을 위해 정규식 사용
-      const regex = new RegExp(`\\b${componentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      const match = sentence.match(regex);
+      // 이미 처리된 위치는 건너뛰기
+      const alreadyProcessed = componentInfos.some(info => 
+        info.startIndex === sentence.indexOf(componentText) && 
+        info.text === componentText
+      );
       
-      if (match && match.index !== undefined) {
-        componentInfos.push({
-          type: componentType,
-          text: componentText,
-          startIndex: match.index,
-          endIndex: match.index + componentText.length
-        });
+      if (alreadyProcessed) {
+        return;
+      }
+
+      if (componentType.toLowerCase() === '전치사구' || 
+          componentType.toLowerCase().replace(/\s+/g, '') === '목적격보어') {
+        // 전치사구와 목적격 보어는 정확한 문자열 매칭 사용
+        let index = -1;
+        if (componentType.toLowerCase().replace(/\s+/g, '') === '목적격보어') {
+          // 목적격 보어는 단어 경계를 사용한 정확한 매칭
+          const regex = new RegExp(`\\b${componentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+          const match = sentence.match(regex);
+          if (match && match.index !== undefined) {
+            index = match.index;
+          }
+        } else {
+          // 전치사구는 기존 방식 유지
+          index = sentence.indexOf(componentText);
+        }
+        
+        if (index !== -1) {
+          componentInfos.push({
+            type: componentType,
+            text: componentText,
+            startIndex: index,
+            endIndex: index + componentText.length
+          });
+        }
+      } else {
+        // 다른 성분들은 기존 방식대로 단어 경계 매칭 사용
+        const regex = new RegExp(`\\b${componentText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        const match = sentence.match(regex);
+        if (match && match.index !== undefined) {
+          componentInfos.push({
+            type: componentType,
+            text: componentText,
+            startIndex: match.index,
+            endIndex: match.index + componentText.length
+          });
+        }
       }
     });
     
@@ -98,115 +133,234 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
     
     while (currentIndex < sentence.length) {
       // 현재 인덱스에 해당하는 성분 찾기
-      const matchingComponents = componentInfos.filter(
-        comp => comp.startIndex <= currentIndex && comp.endIndex > currentIndex
-      );
+      const matchingComponents = componentInfos.filter(comp => {
+        // 이미 처리된 인덱스는 건너뛰기
+        if (processedIndices.has(comp.startIndex)) {
+          return false;
+        }
+        
+        // 목적격 보어나 전치사구의 경우 시작 위치가 정확히 일치할 때만 처리
+        if (comp.type.toLowerCase().replace(/\s+/g, '') === '목적격보어' ||
+            comp.type.toLowerCase() === '전치사구') {
+          return comp.startIndex === currentIndex;
+        }
+        
+        // 다른 성분들은 현재 위치가 범위 내에 있을 때 처리
+        return comp.startIndex <= currentIndex && comp.endIndex > currentIndex;
+      });
       
       if (matchingComponents.length > 0) {
-        // 가장 긴 성분 선택 (중첩된 경우)
-        const component = matchingComponents.reduce(
-          (longest, current) => 
-            (current.endIndex - current.startIndex) > (longest.endIndex - longest.startIndex) 
-              ? current 
-              : longest, 
-          matchingComponents[0]
-        );
+        // 가장 짧은 텍스트 찾기
+        const shortestComponent = matchingComponents.reduce((shortest, current) => {
+          const currentLength = current.endIndex - current.startIndex;
+          const shortestLength = shortest.endIndex - shortest.startIndex;
+          return currentLength < shortestLength ? current : shortest;
+        });
+
+        const container = document.createElement('div');
+        container.className = 'relative inline-block mx-1';
         
-        // 이미 처리된 성분인지 확인
-        if (!processedIndices.has(component.startIndex)) {
-          const { type, text, startIndex, endIndex } = component;
-          
-          // 주어, 동사, 목적어, 전치사구, 주격보어, 목적격보어 확인
-          const isSubject = type.toLowerCase().includes('주어');
-          const isVerb = type.toLowerCase().includes('동사');
-          const isObject = type.toLowerCase().includes('목적어') && !type.toLowerCase().includes('목적격 보어');
-          const isPrepPhrase = type.toLowerCase().includes('전치사구');
-          const isSubjectComplement = type.toLowerCase().includes('주격 보어');
-          const isObjectComplement = type.toLowerCase().includes('목적격 보어');
-          
-          const span = document.createElement('span');
-          span.className = 'relative inline-block mx-1 group';
-          
-          const innerSpan = document.createElement('span');
-          
-          if (isSubject) {
-            innerSpan.className = 'text-blue-600 border-b-2 border-blue-600';
-            innerSpan.textContent = text;
-            
-            const label = document.createElement('span');
-            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-blue-600 font-bold';
-            label.textContent = 'S';
-            
-            span.appendChild(innerSpan);
-            span.appendChild(label);
-          } else if (isVerb) {
-            innerSpan.className = 'text-red-600 border-b-2 border-red-600';
-            innerSpan.textContent = text;
-            
-            const label = document.createElement('span');
-            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-red-600 font-bold';
-            label.textContent = 'V';
-            
-            span.appendChild(innerSpan);
-            span.appendChild(label);
-          } else if (isObject) {
-            innerSpan.className = 'text-green-600 border-b-2 border-green-600';
-            innerSpan.textContent = text;
-            
-            const label = document.createElement('span');
-            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-green-600 font-bold';
-            label.textContent = 'O';
-            
-            span.appendChild(innerSpan);
-            span.appendChild(label);
-          } else if (isSubjectComplement) {
-            innerSpan.className = 'text-purple-600 border-b-2 border-purple-600';
-            innerSpan.textContent = text;
-            
-            const label = document.createElement('span');
-            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-purple-600 font-bold';
-            label.textContent = 'SC';
-            
-            span.appendChild(innerSpan);
-            span.appendChild(label);
-          } else if (isObjectComplement) {
-            innerSpan.className = 'text-purple-400 border-b-2 border-purple-400';
-            innerSpan.textContent = text;
-            
-            const label = document.createElement('span');
-            label.className = 'absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-purple-400 font-bold';
-            label.textContent = 'OC';
-            
-            span.appendChild(innerSpan);
-            span.appendChild(label);
-          } else if (isPrepPhrase) {
-            innerSpan.className = 'text-black';
-            
-            const openBracket = document.createElement('span');
-            openBracket.className = 'text-orange-500 font-bold';
-            openBracket.textContent = '(';
-            
-            const closeBracket = document.createElement('span');
-            closeBracket.className = 'text-orange-500 font-bold';
-            closeBracket.textContent = ')';
-            
-            innerSpan.appendChild(openBracket);
-            innerSpan.appendChild(document.createTextNode(text));
-            innerSpan.appendChild(closeBracket);
-            
-            span.appendChild(innerSpan);
-          } else {
-            innerSpan.textContent = text;
-            span.appendChild(innerSpan);
+        // 텍스트는 한 번만 표시
+        const text = sentence.substring(currentIndex, shortestComponent.endIndex);
+        const textSpan = document.createElement('span');
+        textSpan.textContent = text;
+        
+        // 각 성분별 스타일과 라벨 추가
+        const underlineContainer = document.createElement('div');
+        underlineContainer.className = 'absolute w-full';
+        
+        // 현재 텍스트 범위에 해당하는 모든 성분 처리
+        const overlappingComponents = componentInfos.filter(comp => {
+          // 이미 처리된 인덱스는 건너뛰기
+          if (processedIndices.has(comp.startIndex)) {
+            return false;
           }
           
-          container.appendChild(span);
+          // 목적격 보어나 전치사구의 경우 정확히 일치하는 경우만 처리
+          if (comp.type.toLowerCase().replace(/\s+/g, '') === '목적격보어' ||
+              comp.type.toLowerCase() === '전치사구') {
+            return comp.startIndex === currentIndex && 
+                   comp.endIndex === shortestComponent.endIndex;
+          }
           
-          // 처리된 인덱스 표시
-          processedIndices.add(startIndex);
-          currentIndex = endIndex;
-          continue;
-        }
+          // 다른 성분들은 기존 방식대로 처리
+          return comp.startIndex <= currentIndex && 
+                 comp.endIndex >= shortestComponent.endIndex;
+        });
+        
+        overlappingComponents.forEach((component, index) => {
+          const { type } = component;
+          
+          // 문법 성분 타입 확인
+          const isSubject = type.toLowerCase() === '주어';
+          const isDummySubject = type.toLowerCase() === '가주어';
+          const isRealSubject = type.toLowerCase() === '진주어';
+          const isLogicalSubject = type.toLowerCase() === '의미상주어';
+          const isVerb = type.toLowerCase() === '동사';
+          const isObject = type.toLowerCase() === '목적어';
+          const isIndirectObject = type.toLowerCase() === '간접목적어';
+          const isDirectObject = type.toLowerCase() === '직접목적어';
+          const isSubjectComplement = type.toLowerCase() === '주격보어';
+          const isObjectComplement = type.toLowerCase().replace(/\s+/g, '') === '목적격보어';
+          const isGerund = type.toLowerCase() === '동명사';
+          const isPastParticiple = type.toLowerCase() === '과거분사';
+          const isParticiplePhrase = type.toLowerCase() === '분사구문';
+          const isPrepPhrase = type.toLowerCase() === '전치사구';
+          const isAdverbPhrase = type.toLowerCase() === '부사구';
+          const isAdjectivePhrase = type.toLowerCase() === '형용사구';
+          const isAppositive = type.toLowerCase() === '동격';
+          const isNounClause = type.toLowerCase() === '명사절';
+          const isAdverbClause = type.toLowerCase() === '부사절';
+          const isRelativeClause = type.toLowerCase() === '관계절';
+          const isAdverb = type.toLowerCase() === '부사';
+          const isConjunction = type.toLowerCase() === '접속사';
+          
+          // 상단 라벨 생성 함수
+          const createTopLabel = (text: string, color: string) => {
+            const label = document.createElement('span');
+            label.className = `absolute text-xs font-bold ${color}`;
+            label.style.top = `${-20 - (index * 20)}px`;
+            label.textContent = text;
+            return label;
+          };
+          
+          // 하단 라벨 생성 함수
+          const createBottomLabel = (text: string, color: string) => {
+            const label = document.createElement('span');
+            label.className = `absolute left-1/2 transform -translate-x-1/2 text-xs font-bold ${color}`;
+            label.style.bottom = `${-20 - (index * 20)}px`;
+            label.textContent = text;
+            return label;
+          };
+          
+          // 괄호 생성 함수
+          const createBrackets = (color: string, isSquare: boolean = false) => {
+            const bracketContainer = document.createElement('div');
+            bracketContainer.className = 'absolute w-full h-full';
+            
+            const openBracket = document.createElement('span');
+            const closeBracket = document.createElement('span');
+            
+            openBracket.className = `absolute left-0 transform -translate-x-2 font-bold ${color}`;
+            closeBracket.className = `absolute right-0 transform translate-x-2 font-bold ${color}`;
+            
+            openBracket.textContent = isSquare ? '[' : '(';
+            closeBracket.textContent = isSquare ? ']' : ')';
+            
+            bracketContainer.appendChild(openBracket);
+            bracketContainer.appendChild(closeBracket);
+            
+            return bracketContainer;
+          };
+          
+          // 밑줄 요소 생성
+          const underline = document.createElement('div');
+          underline.className = 'absolute w-full';
+          underline.style.bottom = `${-2 - (index * 3)}px`;
+          
+          if (isSubject || isDummySubject || isRealSubject || isLogicalSubject) {
+            textSpan.classList.add('text-blue-600');
+            underline.className += ' border-b-2 border-blue-600';
+            container.appendChild(createBottomLabel(
+              isDummySubject ? '(가)S' :
+              isRealSubject ? '(진)S' :
+              isLogicalSubject ? '(의)S' : 'S',
+              'text-blue-600'
+            ));
+          } else if (isVerb) {
+            textSpan.classList.add('text-red-600');
+            underline.className += ' border-b-2 border-red-600';
+            container.appendChild(createBottomLabel('V', 'text-red-600'));
+          } else if (isObject) {
+            textSpan.classList.add('text-green-600');
+            underline.className += ' border-b-2 border-green-600';
+            container.appendChild(createBottomLabel('O', 'text-green-600'));
+          } else if (isIndirectObject) {
+            textSpan.classList.add('text-green-600');
+            underline.className += ' border-b-2 border-green-600';
+            container.appendChild(createBottomLabel('IO', 'text-green-600'));
+          } else if (isDirectObject) {
+            textSpan.classList.add('text-green-600');
+            underline.className += ' border-b-2 border-green-600';
+            container.appendChild(createBottomLabel('DO', 'text-green-600'));
+          } else if (isSubjectComplement) {
+            underline.className += ' border-b-2 border-purple-600';
+            container.appendChild(createBottomLabel('SC', 'text-green-600'));
+          } else if (isObjectComplement) {
+            underline.className += ' border-b-2 border-purple-600';
+            container.appendChild(createBottomLabel('OC', 'text-green-600'));
+          } else if (isGerund) {
+            container.appendChild(createTopLabel('동명사', 'text-blue-600'));
+          } else if (isPastParticiple) {
+            container.appendChild(createTopLabel('과거분사', 'text-yellow-600'));
+          } else if (isParticiplePhrase) {
+            const brackets = createBrackets('text-yellow-600', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('과거분사', 'text-yellow-600'));
+          } else if (isPrepPhrase) {
+            const brackets = createBrackets('text-red-600', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('전치사구', 'text-red-600'));
+          } else if (isAdverbPhrase) {
+            const brackets = createBrackets('text-amber-800', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('부사구', 'text-amber-800'));
+          } else if (isAdjectivePhrase) {
+            const brackets = createBrackets('text-green-600', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('형용사구', 'text-green-600'));
+          } else if (isAppositive) {
+            container.appendChild(createTopLabel('동격', 'text-amber-800'));
+          } else if (isNounClause) {
+            const brackets = createBrackets('text-purple-600', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('명사절', 'text-purple-600'));
+          } else if (isAdverbClause) {
+            const brackets = createBrackets('text-purple-600', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('부사절', 'text-purple-600'));
+          } else if (isRelativeClause) {
+            const brackets = createBrackets('text-yellow-600', true);
+            container.insertBefore(brackets, container.firstChild);
+            container.appendChild(createTopLabel('관계절', 'text-yellow-600'));
+          } else if (isAdverb) {
+            container.appendChild(createTopLabel('부사', 'text-amber-800'));
+          } else if (isConjunction) {
+            container.appendChild(createTopLabel('접속사', 'text-purple-600'));
+          }
+          
+          if (isPrepPhrase || isParticiplePhrase || isAdverbPhrase || 
+              isAdjectivePhrase || isNounClause || isAdverbClause || 
+              isRelativeClause) {
+            const brackets = createBrackets(
+              isPrepPhrase ? 'text-red-600' :
+              isParticiplePhrase ? 'text-yellow-600' :
+              isAdverbPhrase ? 'text-amber-800' :
+              isAdjectivePhrase ? 'text-green-600' :
+              isNounClause ? 'text-purple-600' :
+              isAdverbClause ? 'text-purple-600' :
+              'text-yellow-600',
+              isNounClause || isAdverbClause || isRelativeClause
+            );
+            container.appendChild(brackets);
+          }
+          
+          if (!isPrepPhrase && !isParticiplePhrase && !isAdverbPhrase && 
+              !isAdjectivePhrase && !isNounClause && !isAdverbClause && 
+              !isRelativeClause && !isGerund && !isPastParticiple && !isAppositive &&
+              !isAdverb && !isConjunction) {
+            underlineContainer.appendChild(underline);
+          }
+        });
+        
+        container.appendChild(textSpan);
+        container.appendChild(underlineContainer);
+        visualSentenceRef.current.appendChild(container);
+        
+        // 처리된 인덱스 표시
+        processedIndices.add(currentIndex);
+        currentIndex = shortestComponent.endIndex;
+        continue;
       }
       
       // 처리되지 않은 텍스트 추가
@@ -222,10 +376,9 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
       if (endOfPlainText > currentIndex) {
         const plainText = sentence.substring(currentIndex, endOfPlainText);
         const textNode = document.createTextNode(plainText);
-        container.appendChild(textNode);
+        visualSentenceRef.current.appendChild(textNode);
         currentIndex = endOfPlainText;
       } else {
-        // 안전장치: 무한 루프 방지
         currentIndex++;
       }
     }
@@ -244,12 +397,12 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
         <h3 className="font-semibold mb-2">성분 분석 시각화:</h3>
         <div 
           ref={visualSentenceRef}
-          className="p-4 bg-gray-100 rounded min-h-16 flex flex-wrap items-center"
+          className="p-4 bg-gray-100 rounded min-h-[120px] flex flex-wrap items-center mt-8 mb-8"
         />
         <div className="mt-10 pt-4 flex flex-wrap gap-4">
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-blue-600 mr-2"></span>
-            <span>주어 (S)</span>
+            <span>주어 (S, (가)S, (진)S, (의)S)</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-red-600 mr-2"></span>
@@ -257,19 +410,63 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-green-600 mr-2"></span>
-            <span>목적어 (O)</span>
+            <span>목적어 (O, IO, DO)</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-purple-600 mr-2"></span>
             <span>주격보어 (SC)</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-purple-400 mr-2"></span>
+            <span className="inline-block w-4 h-4 bg-purple-600 mr-2"></span>
             <span>목적격보어 (OC)</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-orange-400 mr-2"></span>
+            <span className="inline-block w-4 h-4 bg-blue-600 mr-2"></span>
+            <span>동명사</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-yellow-600 mr-2"></span>
+            <span>과거분사</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-yellow-600 mr-2 font-bold">(</span>
+            <span>분사구문</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-red-600 mr-2 font-bold">(</span>
             <span>전치사구</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-amber-800 mr-2 font-bold">(</span>
+            <span>부사구</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-green-600 mr-2 font-bold">(</span>
+            <span>형용사구</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-amber-800 mr-2"></span>
+            <span>동격</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-purple-600 mr-2 font-bold">[</span>
+            <span>명사절</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-red-600 mr-2 font-bold">[</span>
+            <span>부사절</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-yellow-600 mr-2 font-bold">[</span>
+            <span>관계절</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-amber-800 mr-2"></span>
+            <span>부사</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-4 h-4 bg-purple-600 mr-2"></span>
+            <span>접속사</span>
           </div>
         </div>
       </div>
