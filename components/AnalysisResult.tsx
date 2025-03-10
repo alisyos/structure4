@@ -4,16 +4,14 @@ interface ComponentData {
   text: string;
   type: string;
   index: number;
+  role?: string;
 }
 
 interface AnalysisResultProps {
   analysis: {
     sentence: string;
-    components: Array<{
-      text: string;
-      type: string;
-      index: number;
-    }>;
+    components?: ComponentData[];
+    rawResponse?: string;
   };
 }
 
