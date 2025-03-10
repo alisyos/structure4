@@ -1,19 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 
-interface Component {
-  type: string;
+interface ComponentData {
   text: string;
-  role: string;
-}
-
-interface AnalysisData {
-  sentence: string;
-  components: Component[];
-  rawResponse?: string;
+  type: string;
+  index: number;
 }
 
 interface AnalysisResultProps {
-  analysis: AnalysisData;
+  analysis: {
+    sentence: string;
+    components: Array<{
+      text: string;
+      type: string;
+      index: number;
+    }>;
+  };
 }
 
 const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
@@ -39,7 +40,7 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
   }
 
   // 문장 성분 유형별로 그룹화
-  const groupedComponents: Record<string, Component[]> = {};
+  const groupedComponents: Record<string, ComponentData[]> = {};
   
   analysis.components?.forEach((component) => {
     if (!groupedComponents[component.type]) {

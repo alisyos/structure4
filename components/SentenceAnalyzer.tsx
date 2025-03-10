@@ -13,6 +13,10 @@ const SentenceAnalyzer: React.FC<SentenceAnalyzerProps> = ({
   onAnalyze,
   isLoading,
 }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSentence(e.target.value);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAnalyze();
@@ -33,7 +37,7 @@ const SentenceAnalyzer: React.FC<SentenceAnalyzerProps> = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows={4}
             value={sentence}
-            onChange={(e) => setSentence(e.target.value)}
+            onChange={handleInputChange}
             placeholder="분석할 영어 문장을 입력하세요. (예: The student who studied hard passed the exam.)"
             disabled={isLoading}
           />
