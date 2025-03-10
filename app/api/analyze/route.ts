@@ -30,18 +30,105 @@ export async function POST(request: Request) {
 
     const prompt = `
 영어 문장의 성분을 분석해주세요. 다음 성분들을 식별하고 JSON 형식으로 반환해주세요:
-- 주어 (Subject): 문장에서 행동이나 상태의 주체
-- 동사 (Verb): 문장에서 행동이나 상태를 나타내는 모든 동사를 포함합니다.
-  * be동사 (is, am, are, was, were 등)
-  * 일반동사
-  * 조동사 (can, will, should 등)
-  * 동사구의 모든 부분 (예: "have been working"의 경우 전체를 동사로 표시)
-- 목적어 (Object): 동사의 행동을 받는 대상
-- 전치사구 (Prepositional Phrase): 전치사와 그 목적어로 구성된 구
-- 주격 보어 (Subject Complement): 주어를 설명하거나 보충하는 명사, 형용사, 또는 구
-- 목적격 보어 (Object Complement): 목적어를 설명하거나 보충하는 명사, 형용사, 또는 구
-- 동격 (Apposition): 앞에 나온 명사나 명사구를 다른 명사나 명사구로 부연 설명하는 것
-- 과거분사 (Past Participle): 동사의 과거분사형이 형용사처럼 사용되는 경우
+1. 주어 (Subject, S)
+문장에서 행동이나 상태의 주체가 되는 요소.
+보통 명사(Noun), 대명사(Pronoun), 명사구(Noun Phrase), 명사절(Noun Clause)로 구성됨.
+예시:
+She likes coffee. (She = 주어)
+To read books is fun. (To read books = 주어, 진주어)
+2. 가주어 (Expletive Subject, (가)S)
+진주어를 대신하여 문장의 주어 역할을 하는 형식적(가짜) 주어.
+주로 It이 사용됨.
+예시:
+It is important to study English. (It = 가주어, To study English = 진주어)
+3. 진주어 (Real Subject, (진)S)
+문장 내에서 의미적으로 주어 역할을 하는 구나 절.
+가주어(it)이 대신 주어 역할을 할 때 실질적 주어가 됨.
+예시:
+It is necessary to exercise daily. (to exercise daily = 진주어)
+4. 의미상 주어 (Logical Subject, (의)S)
+특정 문법 구조(예: to부정사, 동명사)에서 의미적으로 주어 역할을 하는 요소.
+예시:
+It is important for students to focus. (for students = 의미상 주어)
+5. 동사 (Verb, V)
+문장에서 행동이나 상태를 나타내는 요소.
+
+종류:
+
+일반동사: run, eat, study 등
+be동사: is, am, are, was, were
+조동사: can, should, will 등
+동사구: have been working, will have studied 등
+예시:
+
+She is happy. (is = be동사)
+They have been studying for hours. (have been studying = 동사구)
+6. 목적어 (Object, O)
+동사의 행동을 받는 대상.
+보통 명사(Noun), 대명사(Pronoun), 명사구(Noun Phrase), 명사절(Noun Clause)로 구성됨.
+예시:
+She reads a book. (a book = 목적어)
+I know that she is coming. (that she is coming = 명사절 목적어)
+7. 간접목적어 (Indirect Object, IO)
+직접목적어가 전달되는 대상.
+보통 사람을 의미함.
+예시:
+She gave me a gift. (me = 간접목적어)
+8. 직접목적어 (Direct Object, DO)
+동사의 직접적인 영향을 받는 대상.
+예시:
+She gave me a gift. (a gift = 직접목적어)
+9. 주격보어 (Subject Complement, SC)
+주어를 보충 설명하는 명사, 형용사, 또는 구.
+보통 be동사 및 상태동사 뒤에 위치.
+예시:
+She is a teacher. (a teacher = 주격보어)
+The sky looks blue. (blue = 주격보어)
+10. 목적격보어 (Object Complement, OC)
+목적어를 보충 설명하는 명사, 형용사, 또는 구.
+예시:
+They elected him president. (president = 목적격보어)
+She made me happy. (happy = 목적격보어)
+11. 동명사 (Gerund)
+동사의 -ing 형태로 명사 역할을 하는 것.
+예시:
+Swimming is fun. (Swimming = 동명사, 주어 역할)
+12. 과거분사 (Past Participle)
+동사의 과거분사형이 형용사처럼 사용되는 경우.
+예시:
+The broken window needs repair. (broken = 과거분사, 형용사 역할)
+13. 분사구문 (Participial Phrase)
+현재분사(-ing) 또는 과거분사(-ed)로 시작하는 부가적 설명 구조.
+예시:
+Feeling tired, he went to bed. (Feeling tired = 분사구문)
+14. 전치사구 (Prepositional Phrase)
+전치사 + 명사(구)로 이루어진 구조.
+예시:
+She is in the park. (in the park = 전치사구)
+15. 부사구 (Adverbial Phrase)
+부사 역할을 하는 구.
+예시:
+He spoke with confidence. (with confidence = 부사구)
+16. 형용사구 (Adjective Phrase)
+형용사 역할을 하는 구.
+예시:
+She is very intelligent. (very intelligent = 형용사구)
+17. 동격 (Apposition)
+앞에 나온 명사를 다른 명사 또는 명사구로 부연 설명하는 것.
+예시:
+My friend, a doctor, lives in New York. (a doctor = 동격)
+18. 명사절 (Noun Clause)
+문장에서 명사 역할을 하는 절.
+예시:
+I know that she is coming. (that she is coming = 명사절)
+19. 부사절 (Adverbial Clause)
+문장에서 부사 역할을 하는 절.
+예시:
+I will call you when I arrive. (when I arrive = 부사절)
+20. 관계절 (Relative Clause)
+관계대명사 또는 관계부사를 포함하여 앞의 명사를 수식하는 절.
+예시:
+The book that I borrowed is interesting. (that I borrowed = 관계절)
 
 중요: 
 1. 한 요소가 여러 문법적 역할을 동시에 수행할 수 있습니다. 예를 들어, 'is'는 동사이면서 주격 보어의 일부일 수 있습니다.
