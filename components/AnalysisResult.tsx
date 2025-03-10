@@ -3,15 +3,14 @@ import React, { useEffect, useRef } from 'react';
 interface ComponentData {
   text: string;
   type: string;
-  index: number;
-  role?: string;
+  startIndex: number;
+  endIndex: number;
 }
 
 interface AnalysisResultProps {
   analysis: {
+    components: ComponentData[];
     sentence: string;
-    components?: ComponentData[];
-    rawResponse?: string;
   };
 }
 
