@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useRef } from 'react';
 
 interface ComponentData {
@@ -5,12 +7,14 @@ interface ComponentData {
   type: string;
   startIndex: number;
   endIndex: number;
+  role?: string;
 }
 
 interface AnalysisResultProps {
   analysis: {
-    components: ComponentData[];
+    components?: ComponentData[];
     sentence: string;
+    rawResponse?: string;
   };
 }
 
