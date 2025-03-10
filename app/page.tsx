@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import SentenceAnalyzer from '@/components/SentenceAnalyzer';
-import AnalysisResult from '@/components/AnalysisResult';
+import SentenceAnalyzer from '../components/SentenceAnalyzer';
+import AnalysisResult from '../components/AnalysisResult';
 
 export default function Home() {
   const [sentence, setSentence] = useState('');
