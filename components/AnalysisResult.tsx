@@ -194,6 +194,7 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
           const { type } = component;
           
           // 문법 성분 타입 확인
+          // 문장 성분 (구구조 분석)
           const isSubject = type.toLowerCase() === '주어';
           const isDummySubject = type.toLowerCase() === '가주어';
           const isRealSubject = type.toLowerCase() === '진주어';
@@ -204,16 +205,40 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
           const isDirectObject = type.toLowerCase() === '직접목적어';
           const isSubjectComplement = type.toLowerCase() === '주격보어';
           const isObjectComplement = type.toLowerCase().replace(/\s+/g, '') === '목적격보어';
-          const isGerund = type.toLowerCase() === '동명사';
-          const isPastParticiple = type.toLowerCase() === '과거분사';
-          const isParticiplePhrase = type.toLowerCase() === '분사구문';
-          const isPrepPhrase = type.toLowerCase() === '전치사구';
+          
+          // 문법요소 분석 (구만 표기)
+          // 명사구
+          const isNounPhrase = type.toLowerCase() === '명사구';
+          const isGerundPhrase = type.toLowerCase() === '동명사구';
+          const isInfinitiveNoun = type.toLowerCase() === 'to부정사구(명사적용법)';
+          const isWhInfinitive = type.toLowerCase() === '의문사+to부정사구';
+          
+          // 형용사구
+          const isPresentParticiple = type.toLowerCase() === '현재분사구';
+          const isPastParticiple = type.toLowerCase() === '과거분사구';
+          const isPrepAdjPhrase = type.toLowerCase() === '전치사구(형용사적용법)';
+          const isInfinitiveAdj = type.toLowerCase() === 'to부정사구(형용사적용법)';
+          
+          // 부사구
+          const isPrepAdvPhrase = type.toLowerCase() === '전치사구(부사적용법)';
+          const isInfinitiveAdv = type.toLowerCase() === 'to부정사구(부사적용법)';
           const isAdverbPhrase = type.toLowerCase() === '부사구';
-          const isAdjectivePhrase = type.toLowerCase() === '형용사구';
-          const isAppositive = type.toLowerCase() === '동격';
-          const isNounClause = type.toLowerCase() === '명사절';
+          
+          // 명사절
+          const isThatClause = type.toLowerCase() === '접속사that절';
+          const isWhClause = type.toLowerCase() === '의문사절';
+          const isIfWhetherClause = type.toLowerCase() === 'if/whether절';
+          const isWhatClause = type.toLowerCase() === '관계사what절';
+          
+          // 형용사절
+          const isSubjectRelClause = type.toLowerCase() === '주격관계대명사절';
+          const isObjectRelClause = type.toLowerCase() === '목적격관계대명사절';
+          const isRelAdvClause = type.toLowerCase() === '관계부사절';
+          
+          // 부사절
           const isAdverbClause = type.toLowerCase() === '부사절';
-          const isRelativeClause = type.toLowerCase() === '관계절';
+          
+          // 기타 요소
           const isAdverb = type.toLowerCase() === '부사';
           const isConjunction = type.toLowerCase() === '접속사';
           
@@ -260,23 +285,18 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
           underline.className = 'absolute w-full';
           underline.style.bottom = `${-2 - (index * 3)}px`;
           
+          // 문장 성분 스타일 적용
           if (isSubject || isDummySubject || isRealSubject || isLogicalSubject) {
             textSpan.classList.add('text-blue-600');
             underline.className += ' border-b-2 border-blue-600';
-            container.appendChild(createBottomLabel(
-              isDummySubject ? '(가)S' :
-              isRealSubject ? '(진)S' :
-              isLogicalSubject ? '(의)S' : 'S',
-              'text-blue-600'
-            ));
+            const label = isDummySubject ? '(가)S' :
+                         isRealSubject ? '(진)S' :
+                         isLogicalSubject ? '(의)S' : 'S';
+            container.appendChild(createBottomLabel(label, 'text-blue-600'));
           } else if (isVerb) {
             textSpan.classList.add('text-red-600');
             underline.className += ' border-b-2 border-red-600';
             container.appendChild(createBottomLabel('V', 'text-red-600'));
-          } else if (isObject) {
-            textSpan.classList.add('text-green-600');
-            underline.className += ' border-b-2 border-green-600';
-            container.appendChild(createBottomLabel('O', 'text-green-600'));
           } else if (isIndirectObject) {
             textSpan.classList.add('text-green-600');
             underline.className += ' border-b-2 border-green-600';
@@ -285,72 +305,90 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
             textSpan.classList.add('text-green-600');
             underline.className += ' border-b-2 border-green-600';
             container.appendChild(createBottomLabel('DO', 'text-green-600'));
+          } else if (isObject) {
+            textSpan.classList.add('text-green-600');
+            underline.className += ' border-b-2 border-green-600';
+            container.appendChild(createBottomLabel('O', 'text-green-600'));
           } else if (isSubjectComplement) {
-            underline.className += ' border-b-2 border-purple-600';
-            container.appendChild(createBottomLabel('SC', 'text-green-600'));
+            underline.className += ' border-b-2 border-indigo-600';
+            container.appendChild(createBottomLabel('SC', 'text-indigo-600'));
           } else if (isObjectComplement) {
-            underline.className += ' border-b-2 border-purple-600';
-            container.appendChild(createBottomLabel('OC', 'text-green-600'));
-          } else if (isGerund) {
-            container.appendChild(createTopLabel('동명사', 'text-blue-600'));
-          } else if (isPastParticiple) {
-            container.appendChild(createTopLabel('과거분사', 'text-yellow-600'));
-          } else if (isParticiplePhrase) {
-            const brackets = createBrackets('text-yellow-600', true);
+            underline.className += ' border-b-2 border-indigo-600';
+            container.appendChild(createBottomLabel('OC', 'text-indigo-600'));
+          }
+          // 명사구 스타일 적용
+          else if (isNounPhrase || isGerundPhrase || isInfinitiveNoun || isWhInfinitive) {
+            const brackets = createBrackets('text-purple-600');
             container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('과거분사', 'text-yellow-600'));
-          } else if (isPrepPhrase) {
-            const brackets = createBrackets('text-red-600', true);
+            
+            let labelText = '명사구';
+            if (isGerundPhrase) labelText = '동명사';
+            else if (isInfinitiveNoun) labelText = 'to부정사(명)';
+            
+            container.appendChild(createTopLabel(labelText, 'text-purple-600'));
+          }
+          // 형용사구 스타일 적용
+          else if (isPresentParticiple || isPastParticiple || isPrepAdjPhrase || isInfinitiveAdj) {
+            const brackets = createBrackets('text-yellow-500');
             container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('전치사구', 'text-red-600'));
-          } else if (isAdverbPhrase) {
-            const brackets = createBrackets('text-amber-800', true);
+            
+            let labelText = '형용사구';
+            if (isPresentParticiple) labelText = '현재분사';
+            else if (isPastParticiple) labelText = '과거분사';
+            else if (isPrepAdjPhrase) labelText = '전치사구';
+            else if (isInfinitiveAdj) labelText = 'to부정사(형)';
+            
+            container.appendChild(createTopLabel(labelText, 'text-yellow-500'));
+          }
+          // 부사구 스타일 적용
+          else if (isAdverbPhrase || isPrepAdvPhrase || isInfinitiveAdv) {
+            const brackets = createBrackets('text-amber-800');
             container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('부사구', 'text-amber-800'));
-          } else if (isAdjectivePhrase) {
+            
+            let labelText = '부사구';
+            if (isPrepAdvPhrase) labelText = '전치사구(부)';
+            else if (isInfinitiveAdv) labelText = 'to부정사(부)';
+            
+            container.appendChild(createTopLabel(labelText, 'text-amber-800'));
+          }
+          // 명사절 스타일 적용
+          else if (isThatClause || isWhClause || isIfWhetherClause || isWhatClause) {
             const brackets = createBrackets('text-green-600', true);
             container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('형용사구', 'text-green-600'));
-          } else if (isAppositive) {
-            container.appendChild(createTopLabel('동격', 'text-amber-800'));
-          } else if (isNounClause) {
+            
+            let labelText = '명사절';
+            if (isThatClause) labelText = '접속사that절';
+            else if (isWhClause) labelText = '의문사절';
+            
+            container.appendChild(createTopLabel(labelText, 'text-green-600'));
+          }
+          // 형용사절 스타일 적용
+          else if (isSubjectRelClause || isObjectRelClause || isRelAdvClause) {
             const brackets = createBrackets('text-purple-600', true);
             container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('명사절', 'text-purple-600'));
-          } else if (isAdverbClause) {
-            const brackets = createBrackets('text-purple-600', true);
+            
+            let labelText = '관계대명사절';
+            if (isRelAdvClause) labelText = '관계부사절(형)';
+            
+            container.appendChild(createTopLabel(labelText, 'text-purple-600'));
+          }
+          // 부사절 스타일 적용
+          else if (isAdverbClause) {
+            const brackets = createBrackets('text-red-600', true);
             container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('부사절', 'text-purple-600'));
-          } else if (isRelativeClause) {
-            const brackets = createBrackets('text-yellow-600', true);
-            container.insertBefore(brackets, container.firstChild);
-            container.appendChild(createTopLabel('관계절', 'text-yellow-600'));
-          } else if (isAdverb) {
+            container.appendChild(createTopLabel('부사절', 'text-red-600'));
+          }
+          // 기타 단일 요소
+          else if (isAdverb) {
             container.appendChild(createTopLabel('부사', 'text-amber-800'));
           } else if (isConjunction) {
             container.appendChild(createTopLabel('접속사', 'text-purple-600'));
           }
           
-          if (isPrepPhrase || isParticiplePhrase || isAdverbPhrase || 
-              isAdjectivePhrase || isNounClause || isAdverbClause || 
-              isRelativeClause) {
-            const brackets = createBrackets(
-              isPrepPhrase ? 'text-red-600' :
-              isParticiplePhrase ? 'text-yellow-600' :
-              isAdverbPhrase ? 'text-amber-800' :
-              isAdjectivePhrase ? 'text-green-600' :
-              isNounClause ? 'text-purple-600' :
-              isAdverbClause ? 'text-purple-600' :
-              'text-yellow-600',
-              isNounClause || isAdverbClause || isRelativeClause
-            );
-            container.appendChild(brackets);
-          }
-          
-          if (!isPrepPhrase && !isParticiplePhrase && !isAdverbPhrase && 
-              !isAdjectivePhrase && !isNounClause && !isAdverbClause && 
-              !isRelativeClause && !isGerund && !isPastParticiple && !isAppositive &&
-              !isAdverb && !isConjunction) {
+          // 밑줄이 필요한 성분만 추가
+          if (isSubject || isDummySubject || isRealSubject || isLogicalSubject ||
+              isVerb || isObject || isIndirectObject || isDirectObject ||
+              isSubjectComplement || isObjectComplement) {
             underlineContainer.appendChild(underline);
           }
         });
@@ -415,52 +453,36 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis }) => {
             <span>목적어 (O, IO, DO)</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-purple-600 mr-2"></span>
+            <span className="inline-block w-4 h-4 bg-indigo-600 mr-2"></span>
             <span>주격보어 (SC)</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-purple-600 mr-2"></span>
+            <span className="inline-block w-4 h-4 bg-indigo-600 mr-2"></span>
             <span>목적격보어 (OC)</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-blue-600 mr-2"></span>
-            <span>동명사</span>
+            <span className="inline-block w-4 h-4 bg-purple-600 mr-2 font-bold">(</span>
+            <span>명사구</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-yellow-600 mr-2"></span>
-            <span>과거분사</span>
-          </div>
-          <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-yellow-600 mr-2 font-bold">(</span>
-            <span>분사구문</span>
-          </div>
-          <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-red-600 mr-2 font-bold">(</span>
-            <span>전치사구</span>
+            <span className="inline-block w-4 h-4 bg-yellow-500 mr-2 font-bold">(</span>
+            <span>형용사구</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-amber-800 mr-2 font-bold">(</span>
             <span>부사구</span>
           </div>
           <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-green-600 mr-2 font-bold">(</span>
-            <span>형용사구</span>
-          </div>
-          <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-amber-800 mr-2"></span>
-            <span>동격</span>
+            <span className="inline-block w-4 h-4 bg-green-600 mr-2 font-bold">[</span>
+            <span>명사절</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-purple-600 mr-2 font-bold">[</span>
-            <span>명사절</span>
+            <span>형용사절</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-red-600 mr-2 font-bold">[</span>
             <span>부사절</span>
-          </div>
-          <div className="flex items-center">
-            <span className="inline-block w-4 h-4 bg-yellow-600 mr-2 font-bold">[</span>
-            <span>관계절</span>
           </div>
           <div className="flex items-center">
             <span className="inline-block w-4 h-4 bg-amber-800 mr-2"></span>
