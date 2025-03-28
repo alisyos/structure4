@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import PromptsEditor from './PromptsEditor';
 
 interface SentenceAnalyzerProps {
   sentence: string;
@@ -15,6 +16,8 @@ const SentenceAnalyzer: React.FC<SentenceAnalyzerProps> = ({
   onAnalyze,
   isLoading,
 }) => {
+  const [isPromptsEditorOpen, setIsPromptsEditorOpen] = useState(false);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSentence(e.target.value);
   };
@@ -24,16 +27,33 @@ const SentenceAnalyzer: React.FC<SentenceAnalyzerProps> = ({
     onAnalyze();
   };
 
+  const openPromptsEditor = () => {
+    setIsPromptsEditorOpen(true);
+  };
+
+  const closePromptsEditor = () => {
+    setIsPromptsEditorOpen(false);
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label
-            htmlFor="sentence"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            영어 문장 입력
-          </label>
+          <div className="flex justify-between items-center mb-2">
+            <label
+              htmlFor="sentence"
+              className="block text-gray-700 text-sm font-bold"
+            >
+              영어 문장 입력
+            </label>
+            <button
+              type="button"
+              onClick={openPromptsEditor}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              분석 시스템 프롬프트 편집
+            </button>
+          </div>
           <textarea
             id="sentence"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -58,6 +78,12 @@ const SentenceAnalyzer: React.FC<SentenceAnalyzerProps> = ({
           </button>
         </div>
       </form>
+      
+      {/* 프롬프트 편집기 */}
+      <PromptsEditor 
+        isOpen={isPromptsEditorOpen} 
+        onClose={closePromptsEditor} 
+      />
     </div>
   );
 };
